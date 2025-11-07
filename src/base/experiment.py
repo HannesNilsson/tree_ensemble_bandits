@@ -4,6 +4,12 @@ We end up with several experiment variants since we might want to log different
 elements of the agent/environment interaction. At the end of `run_experiment` we
 save the key results for plotting in a pandas dataframe `experiment.results`.
 """
+
+from __future__ import division
+from __future__ import print_function
+
+import logging
+
 import numpy as np
 import pandas as pd
 
@@ -31,6 +37,16 @@ class BaseExperiment(object):
     self.results = []
     self.data_dict = {}
     self.rec_freq = rec_freq
+    
+    # Set up logger
+    self.logger = logging.getLogger(name='ExperimentLogger')
+    self.logger.setLevel(logging.WARNING)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.WARNING)
+    formatter = logging.Formatter(
+        '%(asctime)s - %(levelname)s - %(name)s - %(funcName)s - %(message)s')
+    ch.setFormatter(formatter)
+    self.logger.addHandler(ch)
 
 
   def run_step_maybe_log(self, t):
@@ -212,7 +228,7 @@ class ExperimentMultipleAgents(BaseExperiment):
     
   def run_experiment(self):
     """Run the experiment for n_steps and collect data."""
-    #np.random.seed(self.seed)
+
     self.cum_regrets = np.zeros(self.agent.num_agents)
 
     for t in range(self.n_steps):

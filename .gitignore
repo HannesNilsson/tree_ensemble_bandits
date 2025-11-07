@@ -2,4 +2,6 @@
 */*.pyc
 *.png
 data/*
+datasets/*
+results/*
 *.csv

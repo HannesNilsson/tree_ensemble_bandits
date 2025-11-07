@@ -12,8 +12,13 @@ run very large experiment sweeps without slowdown/memory bottlenecks.
 For usage please see `batch_runner.py`.
 """
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import collections
 import pandas as pd
+import numpy as np
 
 
 Config = collections.namedtuple(
@@ -25,7 +30,7 @@ Config = collections.namedtuple(
 # Code for loading/passing configs.
 
 
-def iterate_through_config(config_in):
+def iterate_through_config(config_in, start_seed=0):
   """Iterator to pass through config file without evaluating.
 
   Args:
@@ -35,7 +40,7 @@ def iterate_through_config(config_in):
     info: a dictionary with information on each job of the experiment.
   """
   unique_id = 0
-  for seed in range(config_in.n_seeds):
+  for seed in range(start_seed + 2, start_seed + config_in.n_seeds):
     for env_name, env_constructor in config_in.environments.items():
       for agent_name, agent_constructor in config_in.agents.items():
         for _, exp_constructor in config_in.experiments.items():
@@ -51,7 +56,7 @@ def iterate_through_config(config_in):
           unique_id += 1
 
 
-def get_job_config(config_in, job_id):
+def get_job_config(config_in, job_id, start_seed=0):
   """Retrieve the config for a specific job.
 
   Args:
@@ -66,11 +71,13 @@ def get_job_config(config_in, job_id):
       you have asked for a job_id larger than the total cross product of valid
       experiments.
   """
-  for job_info in iterate_through_config(config_in):
+  for job_info in iterate_through_config(config_in, start_seed=start_seed):
     if job_id == job_info['unique_id']:
-      agent = job_info['agent_constructor']()
-      env = job_info['environment_constructor']()
       seed = job_info['seed']
+      
+      np.random.seed(seed)
+      env = job_info['environment_constructor']()
+      agent = job_info['agent_constructor']()
       unique_id = job_info['unique_id']
       exp = job_info['experiment_constructor'](
           agent, env, config_in.n_steps, seed, unique_id=unique_id)
@@ -79,6 +86,7 @@ def get_job_config(config_in, job_id):
           'unique_id': unique_id,
           'experiment': exp,
       }
+      np.random.seed(None)
       return exp_config
   raise ValueError('No job_id %d found', job_id)
 
