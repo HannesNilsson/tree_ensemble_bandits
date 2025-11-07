@@ -1,0 +1,7 @@
+*.pyc
+*/*.pyc
+*.png
+data/*
+datasets/*
+results/*
+*.csv
