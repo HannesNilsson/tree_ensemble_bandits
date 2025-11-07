@@ -1,0 +1,14 @@
+Tree Ensemble Bandits
+Copyright 2024 Hannes Nilsson & Rikard Johansson
+
+The code structure and some files originate from 
+'A Tutorial on Thompson Sampling - Accompanying Code' 
+https://github.com/iosband/ts_tutorial
+Copyright (c) 2020 Ian Osband
+Licensed under the MIT Licence
+
+The autograd_hacks.py file originate from
+'autograd-hacks' 
+https://github.com/cybertronai/autograd-hacks
+Copyright (c) Yaroslav Bulatov
+Licenced under the Unlicence
