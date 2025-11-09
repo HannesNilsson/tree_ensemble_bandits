@@ -25,13 +25,11 @@ from agents.bernoulli_agents import BernoulliXGBoostTEUCB, BernoulliXGBoostTETS,
 
 from environments.environment_cr import ClassRecommenderEnvWithRng
 
-from ucimlrepo import fetch_ucirepo 
-
 EPSILON = np.finfo(float).eps
 
 def get_config():
     """Generates the config for the experiment."""
-    name = 'magic'
+    name = 'adult_categorical'
 
     parser = argparse.ArgumentParser(description='Run server simulation')
 

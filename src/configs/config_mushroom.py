@@ -28,7 +28,7 @@ EPSILON = np.finfo(float).eps
 
 def get_config():
     """Generates the config for the experiment."""
-    name = 'magic'
+    name = 'mushroom'
 
     parser = argparse.ArgumentParser(description='Run server simulation')
 
