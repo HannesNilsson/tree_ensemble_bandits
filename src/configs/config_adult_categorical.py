@@ -19,12 +19,15 @@ from base.config_lib import Config
 
 from experiments.experiment_cr import ExperimentLoggingVisualizationNoAction
 
-from agents.bernoulli_agents import BernoulliLinUCB, BernoulliLinTS, BernoulliNeuralUCB, BernoulliNeuralTS
+from agents.bernoulli_agents import BernoulliXGBoostTEUCB, BernoulliXGBoostTETS, \
+    BernoulliRandomForestTEUCB, BernoulliRandomForestTETS, BernoulliTreeBootstrapXGBoost, \
+    BernoulliTreeBootstrapRandomForest, BernoulliTreeBootstrapDecisionTree
 
 from environments.environment_cr import ClassRecommenderEnvWithRng
 
-EPSILON = np.finfo(float).eps
+from ucimlrepo import fetch_ucirepo 
 
+EPSILON = np.finfo(float).eps
 
 def get_config():
     """Generates the config for the experiment."""
@@ -60,7 +63,7 @@ def get_config():
     parser.add_argument('--xgb_learning_rate', help='xgb_learning_rate', type=float, default=0.3)
     parser.add_argument('--xgb_gamma', help='xgb_gamma', type=float, default=100.0)
     parser.add_argument('--xgb_lambda', help='xgb_lambda', type=float, default=1.0)
-    parser.add_argument('--xgb_enable_categorical', help='xgb_enable_categorical', type=bool, default=False)
+    parser.add_argument('--xgb_enable_categorical', help='xgb_enable_categorical', type=bool, default=True)
 
     parser.add_argument('--linucb_alpha', help='linucb_alpha', type=float, default=1.0)
 
@@ -80,9 +83,10 @@ def get_config():
     n_classes = len(set_classes)
     n_features = cr_data.shape[1] - 1
 
-    #need even number of features for NeuralUCB weight initiations
-    context_length = n_features * n_classes + int((n_features * n_classes) % 2 == 1)
+    #convert and extract feature types
+    feature_types = ['c'] + ['q'] + ['c'] + ['q'] + ['c'] + ['q'] + ['c' for i in range(5)] + ['q' for i in range(3)] + ['c']
 
+    context_length = n_features + 1 #extra feature is arm-ID
 
     def cr_sample(data=cr_data, dp_list=[0]):
         """Generates a single sample from the cr dataset
@@ -123,7 +127,7 @@ def get_config():
         
 
     def env_arm_context_and_reward_update_function(arm, advance_data, rng=np.random.default_rng()):
-        """Function which is executed once per iteration and arm ID, at the end of each
+        """Function which is executed once per iteration and edge ID, at the end of each
         iteration and (optionally) once before the first iteration. The function can modify
         the arm object (below, the global contextual feature available through "advance_data"
         is assigned to "arm.context". Note that, for practical reasons (context is supplied
@@ -142,16 +146,11 @@ def get_config():
         """
         true_class = advance_data.iloc[-1]
         context = np.array([advance_data.iloc[:-1]])
-        pre_padding = np.zeros(((arm.label) * n_features,1))
-        post_padding = np.zeros(((n_classes - arm.label - 1) * n_features,1))
-        context = np.concatenate((pre_padding, context.T, post_padding), axis=0)
-        #weight initiation in neuralUCB requires even number of features
-        if len(context) % 2 == 1:
-            context = np.append(context, np.zeros((1,1)), axis=0)
-        context /= np.linalg.norm(context)
+        label = np.zeros((1,1)) + arm.label
+        context = np.concatenate((label, context.T), axis=0)  #put arm ID first
+        context = context.astype(int)
         arm.set_context(context)
         arm.set_reward(int(true_class == arm.label))
-
 
     def env_iteration_data_function(env):
         """Function which assigns values to the iteration data store, for debug purposes.
@@ -170,12 +169,12 @@ def get_config():
             return {'advance_data': env.advance_data.iloc[-1]}
         else:
             return {}
-    
+
     
     def no_context_observation_function(arm):
       """Function which returns a constant observation for each arm"""
       return np.array([[1.0]])
-
+    
 
     env_constructor = functools.partial(ClassRecommenderEnvWithRng,
                                         args.start_seed,
@@ -189,33 +188,52 @@ def get_config():
                                         )
                                         
     # ---------------------------------------------- EXPERIMENT SETUP ----------------------------------------------
-    
+
     # Agent specifications, each will be run once for each random seed (to ensure fair comparison)
     agents = collections.OrderedDict(
         [
-            ('LinUCB',
-              functools.partial(BernoulliLinUCB,
-                                env_constructor, context_length, args.nn_use_cuda, args.linucb_alpha)),
+            ('TreeBootstrapRF',
+                functools.partial(BernoulliTreeBootstrapRandomForest,
+                                    env_constructor, context_length, 
+                                    args.nn_use_cuda, args.initial_random_selections)),
 
-            ('LinTS',
-              functools.partial(BernoulliLinTS,
-                                env_constructor, context_length, args.nn_use_cuda, args.linucb_alpha)),
+            ('TreeBootstrapXGBoost',
+                functools.partial(BernoulliTreeBootstrapXGBoost,
+                                    env_constructor, context_length, 
+                                    args.nn_use_cuda, args.xgb_enable_categorical,
+                                    args.initial_random_selections, feature_types)),
 
-            ('NeuralUCB',
-             functools.partial(BernoulliNeuralUCB,
-                               env_constructor, context_length, args.nn_num_layers,
-                               args.nn_num_hidden_units, args.nn_regularization_factor, args.nn_ucb_delta,
-                               args.nn_ucb_confidence_factor, args.nn_dropout_probability, args.nn_learning_rate,
-                               args.nn_num_epochs, args.nn_batch_size_factor, args.nn_replay_buffer_size, args.nn_early_stopping, 
-                               args.nn_UCB_extra_t_factor, args.nn_use_cuda, args.initial_random_selections)),
-              
-            ('NeuralTS',
-             functools.partial(BernoulliNeuralTS,
-                               env_constructor, context_length, args.nn_num_layers,
-                               args.nn_num_hidden_units, args.nn_regularization_factor, args.nn_TS_exploration_variance, 
-                               args.nn_dropout_probability, args.nn_learning_rate, args.nn_num_epochs, args.nn_batch_size_factor,
-                               args.nn_replay_buffer_size, args.nn_early_stopping, args.nn_use_cuda,
-                               args.initial_random_selections)),
+            ('TreeBootstrapDT',
+                functools.partial(BernoulliTreeBootstrapDecisionTree,
+                                    env_constructor, context_length, 
+                                    args.nn_use_cuda, args.initial_random_selections)),
+
+            ('XGBoostTEUCB',
+            functools.partial(BernoulliXGBoostTEUCB,
+                              env_constructor, context_length, args.nn_use_cuda, 
+                              args.xgb_exploration_factor, args.xgb_max_depth, args.xgb_n_estimators, 
+                              args.xgb_learning_rate, args.xgb_gamma, args.xgb_lambda, args.xgb_enable_categorical,
+                              args.initial_random_selections, feature_types)),
+
+            ('XGBoostTETS',
+             functools.partial(BernoulliXGBoostTETS,
+                               env_constructor, context_length, args.nn_use_cuda,
+                               args.xgb_exploration_variance, args.xgb_max_depth, args.xgb_n_estimators,
+                               args.xgb_learning_rate, args.xgb_gamma, args.xgb_lambda, args.xgb_enable_categorical,
+                               args.initial_random_selections, feature_types)),
+            
+            ('RandomForestTEUCB',
+                functools.partial(BernoulliRandomForestTEUCB,
+                                    env_constructor, context_length, 
+                                    args.nn_use_cuda, args.xgb_exploration_factor, args.xgb_max_depth,
+                                    args.xgb_n_estimators, args.initial_random_selections)),
+
+            ('RandomForestTETS',
+                functools.partial(BernoulliRandomForestTETS,
+                                    env_constructor, context_length,
+                                    args.nn_use_cuda, args.xgb_exploration_variance, args.xgb_max_depth,
+                                    args.xgb_n_estimators, args.initial_random_selections)),
+
         ]
     )
 
@@ -239,15 +257,27 @@ def get_config():
     config = Config(name, agents, environments, experiments, n_steps, n_seeds)
     return config
 
-
 def _read_data():
     # fetch dataset 
-    filepath = '../datasets/magic04.data'
-    columns = ['feat1', 'feat2', 'feat3', 'feat4', 'feat5', 'feat6', 
-               'feat7', 'feat8', 'feat9', 'feat10', 'label']
-    data = pd.read_csv(filepath, names=columns)
+    filepath = '../datasets/adult.data'
+    columns = ['age', 'workclass', 'fnlwgt', 'education', 'education-num', 'marital-status', 
+                         'occupation', 'relationship', 'race', 'sex', 'capital-gain', 'capital-loss', 
+                         'hours-per-week', 'native-country', 'label']
+    dataset = pd.read_csv(filepath, names=columns)
 
-    # convert class labels to 0 and 1
-    data['label'] = data['label'].astype("category").cat.codes.astype(int)
+    dataset['label'] = dataset['label'].replace(['<=50K.', '>50K.'], ['<=50K', '>50K'])
+    dataset['workclass'] = dataset['workclass'].fillna('missing')
+    dataset['occupation'] = dataset['occupation'].fillna('missing')
+    dataset['native-country'] = dataset['native-country'].fillna('missing')
 
-    return data
+    dataset['workclass'] = dataset['workclass'].astype("category").cat.codes.astype(int)
+    dataset['education'] = dataset['education'].astype("category").cat.codes.astype(int)
+    dataset['marital-status'] = dataset['marital-status'].astype("category").cat.codes.astype(int)
+    dataset['occupation'] = dataset['occupation'].astype("category").cat.codes.astype(int)
+    dataset['relationship'] = dataset['relationship'].astype("category").cat.codes.astype(int)
+    dataset['race'] = dataset['race'].astype("category").cat.codes.astype(int)
+    dataset['sex'] = dataset['sex'].astype("category").cat.codes.astype(int)
+    dataset['native-country'] = dataset['native-country'].astype("category").cat.codes.astype(int)
+    dataset['label'] = dataset['label'].astype("category").cat.codes.astype(int)
+
+    return dataset

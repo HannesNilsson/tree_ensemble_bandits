@@ -75,12 +75,11 @@ def get_config():
     # Shuffle data
     cr_data = cr_data.sample(frac=1, random_state=args.start_seed).reset_index(drop=True)
 
-    set_classes = cr_data[10].unique()
+    set_classes = cr_data['label'].unique()
     n_classes = len(set_classes)
     n_features = cr_data.shape[1] - 1
 
-    # Requires even number of features for NeuralUCB weight initiations
-    context_length = n_features + 1
+    context_length = n_features + 1 #extra feature is arm-ID
 
     feature_types = ['c'] + ['q' for i in range(n_features)]
 
@@ -140,13 +139,13 @@ def get_config():
         rng - Numpy random number generator
             Numpy random generator (e.g., with a specified seed, for reproducibility)
         """
-        true_class = advance_data[10]
-        context = np.array([advance_data[:-1]])
+        true_class = advance_data.iloc[-1]
+        context = np.array([advance_data.iloc[:-1]])
         label = np.zeros((1,1)) + arm.label
         context = np.concatenate((label, context.T), axis=0)
         context = context.astype(int)
         arm.set_context(context)
-        arm.set_reward(int(true_class == arm.label) + rng.normal(0, 0.001))
+        arm.set_reward(int(true_class == arm.label))
 
 
     def env_iteration_data_function(env):
@@ -163,7 +162,7 @@ def get_config():
         Iteration debug data as a dict of string (column name) to arbitrary data.
         """
         if env.advance_data is not None:
-            return {'advance_data': env.advance_data[-1]}
+            return {'advance_data': env.advance_data.iloc[-1]}
         else:
             return {}
 
@@ -258,11 +257,11 @@ def get_config():
 def _read_data():
     # fetch dataset 
     filepath = '../datasets/magic04.data'
-    data = pd.read_csv(filepath, header=None)
+    columns = ['feat1', 'feat2', 'feat3', 'feat4', 'feat5', 'feat6', 
+               'feat7', 'feat8', 'feat9', 'feat10', 'label']
+    data = pd.read_csv(filepath, names=columns)
 
     # convert class labels to 0 and 1
-    data[10] = data[10].map({'g': 1, 'h': 0})
-
-    #logging.info(data)
+    data['label'] = data['label'].astype("category").cat.codes.astype(int)
 
     return data

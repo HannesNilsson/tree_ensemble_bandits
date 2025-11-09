@@ -5,7 +5,7 @@ from base import config_lib
 
 def run_experiment_job(job_id, config_path, n_jobs, n_steps, start_seed):
 
-    logging.info('Seed: ' + str("%02d" % (start_seed,)) + ', job:' + str(job_id + 1) + ' of ' + str(n_jobs))
+    logging.info('Seed: ' + str("%02d" % (start_seed,)) + ', job: ' + str(job_id + 1) + ' of ' + str(n_jobs))
     
     # Loading in the experiment config file
     config_module = importlib.import_module(config_path)

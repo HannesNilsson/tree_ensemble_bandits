@@ -40,7 +40,7 @@ def iterate_through_config(config_in, start_seed=0):
     info: a dictionary with information on each job of the experiment.
   """
   unique_id = 0
-  for seed in range(start_seed + 2, start_seed + config_in.n_seeds):
+  for seed in range(start_seed, start_seed + config_in.n_seeds):
     for env_name, env_constructor in config_in.environments.items():
       for agent_name, agent_constructor in config_in.agents.items():
         for _, exp_constructor in config_in.experiments.items():

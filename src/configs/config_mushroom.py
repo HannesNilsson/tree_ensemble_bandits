@@ -71,6 +71,13 @@ def get_config():
     # Read data
     cr_data = _read_data()
 
+    cr_labels = cr_data['label']
+
+    # Transform categorical to one-hot encoding (except last column, which is the label)
+    cr_data = pd.get_dummies(cr_data, dtype=int).iloc[:, :-1]
+
+    cr_data['label'] = cr_labels
+
     # Shuffle data
     cr_data = cr_data.sample(frac=1, random_state=args.start_seed).reset_index(drop=True)
 
@@ -123,7 +130,7 @@ def get_config():
         
 
     def env_arm_context_and_reward_update_function(arm, advance_data, rng=np.random.default_rng()):
-        """Function which is executed once per iteration and arm ID, at the end of each
+        """Function which is executed once per iteration and edge ID, at the end of each
         iteration and (optionally) once before the first iteration. The function can modify
         the arm object (below, the global contextual feature available through "advance_data"
         is assigned to "arm.context". Note that, for practical reasons (context is supplied
@@ -140,6 +147,7 @@ def get_config():
         rng - Numpy random number generator
             Numpy random generator (e.g., with a specified seed, for reproducibility)
         """
+
         true_class = advance_data.iloc[-1]
         context = np.array([advance_data.iloc[:-1]])
         pre_padding = np.zeros(((arm.label) * n_features,1))
@@ -242,12 +250,24 @@ def get_config():
 
 def _read_data():
     # fetch dataset 
-    filepath = '../datasets/magic04.data'
-    columns = ['feat1', 'feat2', 'feat3', 'feat4', 'feat5', 'feat6', 
-               'feat7', 'feat8', 'feat9', 'feat10', 'label']
-    data = pd.read_csv(filepath, names=columns)
+    filepath = '../datasets/agaricus-lepiota.data'
+    columns = ["label", "cap-shape", "cap-surface", "cap-color", "bruises", 
+               "odor", "gill-attachment", "gill-spacing", "gill-size", "gill-color", 
+               "stalk-shape", "stalk-root", "stalk-surface-above-ring", 
+               "stalk-surface-below-ring", "stalk-color-above-ring", 
+               "stalk-color-below-ring", "veil-type", "veil-color", "ring-number", 
+               "ring-type", "spore-print-color", "population", "habitat"]
+    
+    dataset = pd.read_csv(filepath, names=columns)
 
-    # convert class labels to 0 and 1
-    data['label'] = data['label'].astype("category").cat.codes.astype(int)
+    dataset.dropna(subset=['label'])
 
-    return data
+    target = dataset.columns[0]
+
+    dataset[target] = dataset.pop(target)
+
+    dataset['stalk-root'] = dataset['stalk-root'].fillna('m')  #'m' for missing
+
+    dataset = dataset.astype("category").apply(lambda x: x.cat.codes).astype(int)
+
+    return dataset

@@ -43,7 +43,7 @@ class ExperimentLoggingVisualizationNoAction(BaseExperiment):
             self.results.append(self.data_dict)
 
         if (t + 1) % 10 == 0:
-            logging.info('Seed: ' + str("%02d" % (self.seed,)) + ', job: ' + str("%02d" % (self.unique_id,)) + ', t: ' + str(t + 1))
+            logging.info('Seed: ' + str("%02d" % (self.seed,)) + ', job: ' + str("%02d" % (self.unique_id + 1,)) + ', t: ' + str(t + 1))
 
 
     def run_experiment(self):

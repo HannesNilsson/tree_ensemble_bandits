@@ -1,10 +1,10 @@
 #job parameters
-n_steps=100
+n_steps=81
 n_jobs=4
 n_processes=1
-config="configs.config_magic"
-res_path="../results/results_magic"
-res_prefix="magic"
+config="configs.config_mushroom"
+res_path="../results/results_mushroom"
+res_prefix="mushroom"
 logging_level="info"
 start_seed=0
 
@@ -12,12 +12,12 @@ start_seed=0
 nn_drop_prob=0.2
 nn_num_layers=1
 nn_num_hidden_units=100
-nn_regularization_factor=0.001
+nn_regularization_factor=0.0001
 nn_learning_rate=0.001
 nn_num_epochs=10
 nn_batch_size_factor=10
 nn_replay_buffer_size=100000
-nn_ucb_confidence_factor=0.00001
+nn_ucb_confidence_factor=0.01
 nn_UCB_extra_t_factor=-1
 nn_TS_exploration_variance=0.00001
 nn_use_cuda=True

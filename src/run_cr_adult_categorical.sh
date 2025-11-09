@@ -2,14 +2,14 @@
 n_steps=100
 n_jobs=7
 n_processes=1
-config="configs.config_magic_categorical"
-res_path="../results/results_magic_categorical"
-res_prefix="magic"
+config="configs.config_adult_categorical"
+res_path="../results/results_adult_categorical"
+res_prefix="adult_categorical"
 logging_level="info"
 start_seed=0
 
 #model parameters
-nn_drop_prob=0.0
+nn_drop_prob=0.2
 nn_num_layers=1
 nn_num_hidden_units=100
 nn_regularization_factor=0.001
@@ -17,9 +17,9 @@ nn_learning_rate=0.001
 nn_num_epochs=10
 nn_batch_size_factor=10
 nn_replay_buffer_size=100000
-nn_ucb_confidence_factor=0.000001
+nn_ucb_confidence_factor=0.001
 nn_UCB_extra_t_factor=-1
-nn_TS_exploration_variance=0.000001
+nn_TS_exploration_variance=0.1
 nn_use_cuda=True
 nn_early_stopping=True
 nn_epsilon=0.05

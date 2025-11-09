@@ -76,7 +76,7 @@ def get_config():
 
     logging.debug('cr_data: ', cr_data)
 
-    set_classes = cr_data['label'].unique()
+    set_classes = cr_data["label"].unique()
     n_classes = len(set_classes)
     n_features = cr_data.shape[1] - 1
 
@@ -123,7 +123,7 @@ def get_config():
         
 
     def env_arm_context_and_reward_update_function(arm, advance_data, rng=np.random.default_rng()):
-        """Function which is executed once per iteration and arm ID, at the end of each
+        """Function which is executed once per iteration and edge ID, at the end of each
         iteration and (optionally) once before the first iteration. The function can modify
         the arm object (below, the global contextual feature available through "advance_data"
         is assigned to "arm.context". Note that, for practical reasons (context is supplied
@@ -140,6 +140,7 @@ def get_config():
         rng - Numpy random number generator
             Numpy random generator (e.g., with a specified seed, for reproducibility)
         """
+
         true_class = advance_data.iloc[-1]
         context = np.array([advance_data.iloc[:-1]])
         pre_padding = np.zeros(((arm.label) * n_features,1))
@@ -151,7 +152,6 @@ def get_config():
         context /= np.linalg.norm(context)
         arm.set_context(context)
         arm.set_reward(int(true_class == arm.label))
-
 
     def env_iteration_data_function(env):
         """Function which assigns values to the iteration data store, for debug purposes.
@@ -170,12 +170,12 @@ def get_config():
             return {'advance_data': env.advance_data.iloc[-1]}
         else:
             return {}
-    
+
     
     def no_context_observation_function(arm):
       """Function which returns a constant observation for each arm"""
       return np.array([[1.0]])
-
+    
 
     env_constructor = functools.partial(ClassRecommenderEnvWithRng,
                                         args.start_seed,
@@ -189,7 +189,7 @@ def get_config():
                                         )
                                         
     # ---------------------------------------------- EXPERIMENT SETUP ----------------------------------------------
-    
+
     # Agent specifications, each will be run once for each random seed (to ensure fair comparison)
     agents = collections.OrderedDict(
         [
@@ -239,15 +239,27 @@ def get_config():
     config = Config(name, agents, environments, experiments, n_steps, n_seeds)
     return config
 
-
 def _read_data():
     # fetch dataset 
-    filepath = '../datasets/magic04.data'
-    columns = ['feat1', 'feat2', 'feat3', 'feat4', 'feat5', 'feat6', 
-               'feat7', 'feat8', 'feat9', 'feat10', 'label']
-    data = pd.read_csv(filepath, names=columns)
+    filepath = '../datasets/adult.data'
+    columns = ['age', 'workclass', 'fnlwgt', 'education', 'education-num', 'marital-status', 
+                         'occupation', 'relationship', 'race', 'sex', 'capital-gain', 'capital-loss', 
+                         'hours-per-week', 'native-country', 'label']
+    dataset = pd.read_csv(filepath, names=columns)
 
-    # convert class labels to 0 and 1
-    data['label'] = data['label'].astype("category").cat.codes.astype(int)
+    dataset['label'] = dataset['label'].replace(['<=50K.', '>50K.'], ['<=50K', '>50K'])
+    dataset['workclass'] = dataset['workclass'].fillna('missing')
+    dataset['occupation'] = dataset['occupation'].fillna('missing')
+    dataset['native-country'] = dataset['native-country'].fillna('missing')
 
-    return data
+    dataset['workclass'] = dataset['workclass'].astype("category").cat.codes.astype(int)
+    dataset['education'] = dataset['education'].astype("category").cat.codes.astype(int)
+    dataset['marital-status'] = dataset['marital-status'].astype("category").cat.codes.astype(int)
+    dataset['occupation'] = dataset['occupation'].astype("category").cat.codes.astype(int)
+    dataset['relationship'] = dataset['relationship'].astype("category").cat.codes.astype(int)
+    dataset['race'] = dataset['race'].astype("category").cat.codes.astype(int)
+    dataset['sex'] = dataset['sex'].astype("category").cat.codes.astype(int)
+    dataset['native-country'] = dataset['native-country'].astype("category").cat.codes.astype(int)
+    dataset['label'] = dataset['label'].astype("category").cat.codes.astype(int)
+
+    return dataset

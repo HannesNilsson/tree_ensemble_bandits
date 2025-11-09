@@ -83,7 +83,6 @@ def get_config():
     #need even number of features for NeuralUCB weight initiations
     context_length = n_features * n_classes + int((n_features * n_classes) % 2 == 1)
 
-
     def cr_sample(data=cr_data, dp_list=[0]):
         """Generates a single sample from the cr dataset
 
@@ -98,6 +97,7 @@ def get_config():
         -------
         Sample as a row vector (numpy array)
         """
+        #idx = rng.integers(0, len(data) - 1)
         idx = dp_list.pop(0)
         return data.iloc[idx]
         
@@ -123,7 +123,7 @@ def get_config():
         
 
     def env_arm_context_and_reward_update_function(arm, advance_data, rng=np.random.default_rng()):
-        """Function which is executed once per iteration and arm ID, at the end of each
+        """Function which is executed once per iteration and edge ID, at the end of each
         iteration and (optionally) once before the first iteration. The function can modify
         the arm object (below, the global contextual feature available through "advance_data"
         is assigned to "arm.context". Note that, for practical reasons (context is supplied
@@ -148,6 +148,7 @@ def get_config():
         #weight initiation in neuralUCB requires even number of features
         if len(context) % 2 == 1:
             context = np.append(context, np.zeros((1,1)), axis=0)
+        context /= np.linalg.norm(context)
         context /= np.linalg.norm(context)
         arm.set_context(context)
         arm.set_reward(int(true_class == arm.label))
@@ -242,12 +243,12 @@ def get_config():
 
 def _read_data():
     # fetch dataset 
-    filepath = '../datasets/magic04.data'
+    filepath = '../datasets/shuttle.tst'
     columns = ['feat1', 'feat2', 'feat3', 'feat4', 'feat5', 'feat6', 
-               'feat7', 'feat8', 'feat9', 'feat10', 'label']
-    data = pd.read_csv(filepath, names=columns)
+               'feat7', 'feat8', 'feat9', 'label']
+    data = pd.read_csv(filepath, names=columns, sep=' ')
 
-    # convert class labels to 0 and 1
+    # convert class labels to int of categories starting at 0
     data['label'] = data['label'].astype("category").cat.codes.astype(int)
 
     return data
