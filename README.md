@@ -10,7 +10,8 @@ Install the required python packages from the requirements.txt file (preferably 
 
 Run bash scripts corresponding intended exeperiments, e.g. adult dataset with categorical features:
 > ./run_cr_adult_categorical.sh
-you may have to specify subfolders within the results folder corresponding to the res_path specified in the bash script
+
+(you may have to specify subfolders within the results folder corresponding to the res_path specified in the bash script)
 
 To run on ssh connected remote server use e.g. nohup:
 > nohup run_cr_adult_categorical.sh > adult_categorical.out &
