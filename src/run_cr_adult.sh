@@ -1,5 +1,15 @@
+#!/usr/bin/env bash
+#SBATCH -A NAISS2025-22-1420
+#SBATCH -N 1 --gpus-per-node=A40:1
+#SBATCH -n 1
+#SBATCH -c 1
+#SBATCH -t 24:00:00
+
+module load SciPy-bundle/2025.07-gfbf-2025b
+source /mimer/NOBACKUP/groups/naiss2023-22-1122/python_env/my_python/bin/activate
+
 #job parameters
-n_steps=100
+n_steps=10000
 n_jobs=4
 n_processes=1
 config="configs.config_adult"

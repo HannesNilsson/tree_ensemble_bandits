@@ -1,5 +1,12 @@
+#!/usr/bin/env bash
+#SBATCH -A NAISS2025-22-1420
+#SBATCH -C NOGPU
+#SBATCH -n 1
+#SBATCH -c 1
+#SBATCH -t 24:00:00
+
 #job parameters
-n_steps=100
+n_steps=8123
 n_jobs=7
 n_processes=1
 config="configs.config_mushroom_categorical"

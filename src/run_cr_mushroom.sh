@@ -1,5 +1,12 @@
+#!/usr/bin/env bash
+#SBATCH -A NAISS2025-22-1420
+#SBATCH -N 1 --gpus-per-node=A40:1
+#SBATCH -n 1
+#SBATCH -c 1
+#SBATCH -t 24:00:00
+
 #job parameters
-n_steps=81
+n_steps=8123
 n_jobs=4
 n_processes=1
 config="configs.config_mushroom"
